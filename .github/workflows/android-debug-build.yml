@@ -5,9 +5,14 @@ on:
   push:
     branches: [ main, master ]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -18,22 +23,42 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # setup-android@v3 could request Google's removed "tools" SDK package.
+      # v4 uses modern command-line tools and we explicitly request only platform-tools.
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android API 37
-        run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
-
-      - name: Set up Gradle 9.6
-        uses: gradle/actions/setup-gradle@v4
+        uses: android-actions/setup-android@v4
         with:
-          gradle-version: '9.6.0'
+          packages: 'platform-tools'
+
+      - name: Install required Android SDK packages
+        shell: bash
+        run: |
+          sdkmanager --install \
+            "platforms;android-37" \
+            "build-tools;36.0.0"
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Verify build environment
+        run: |
+          java -version
+          ./gradlew --version
+          sdkmanager --version
 
       - name: Build debug APK
-        run: gradle :app:assembleDebug --stacktrace
+        run: ./gradlew --no-daemon :app:assembleDebug --stacktrace
+
+      - name: Verify APK exists
+        run: test -f app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: NEXA-V0.1-debug-apk
+          name: NEXA-V0.1-RUNTIMEFIX1-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14

@@ -35,3 +35,6 @@ V0.2 should replace the static demo catalog with legal live discovery providers 
 ## Build APK on GitHub
 A workflow is included at `.github/workflows/android-debug-build.yml`.
 Push this project to GitHub, open **Actions → NEXA Android Debug Build → Run workflow**, then download the `NEXA-V0.1-debug-apk` artifact.
+
+## V0.1 RUNTIMEFIX1 — GitHub Actions
+If an older workflow failed with `Warning: Failed to find package 'tools'`, use the included `.github/workflows/android-debug-build.yml` from this package. It uses `android-actions/setup-android@v4` and does not request the removed Android SDK `tools` package.
