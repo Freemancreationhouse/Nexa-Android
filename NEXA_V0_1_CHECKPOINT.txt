@@ -1,0 +1,11 @@
+NEXA ANDROID V0.1 — LOCKED FIRST BUILD SOURCE CHECKPOINT
+Brand: NEXA — Music Beyond Borders
+Package: com.studiokinematics.nexa
+Version: 0.1.0 (1)
+UI baseline: futuristic Gen-Z dark glass/neon concept approved 2026-09-30
+Android baseline: compile/target API 37, AGP 9.4.1, Gradle 9.6.0, JDK 17+
+Playback: AndroidX Media3 ExoPlayer 1.11.1
+Compose BOM: 2026.08.00
+Included: Home, Explore, Radio, Library, local favorites, recent session, search, full player, mini player, real HTTPS demo playback.
+Not yet included: Radio Browser live API, production on-demand catalog API, MediaSession background service, downloads, account sync, production artwork/metadata.
+RULE: preserve this approved brand/UI baseline unless explicitly changed by the user.
