@@ -1,43 +1,22 @@
-# NEXA Android V0.1
+# NEXA — Music Beyond Borders V0.2 LIVE1
 
-**NEXA — Music Beyond Borders**
+V0.2 LIVE1 converts the approved NEXA V0.1 UI from a hardcoded playback demo into a live Android radio/music discovery application.
 
-Locked first-build baseline for the Studio Kinematics Gen-Z multilingual music app.
+## Real behavior in this checkpoint
+- Home loads live India + global stations from the Radio Browser directory.
+- Explore searches the live directory and has language/genre filters.
+- Radio is populated from live network data rather than fake NEXA Sessions.
+- Media3 plays broadcaster stream URLs directly, including HLS support.
+- If a stream exposes ICY/current-track metadata, NEXA displays it in the mini-player and Now Playing screen.
+- Favorites and recent stations are saved locally, with no account required.
+- Sleep timer cycles 15 → 30 → 60 → off.
+- Stream failures show a real playback error rather than silently pretending to play.
 
-## V0.1 included
-- Futuristic dark neon / glassmorphism-inspired Compose UI
-- Home, Explore, Radio and Library tabs
-- Hindi, English, Punjabi, Tamil, Telugu, Malayalam, Bengali, Marathi and more discovery chips
-- Search filtering across the bundled demo catalog
-- Local favorites using SharedPreferences
-- Recently played state
-- Full-screen Now Playing screen
-- Real AndroidX Media3 / ExoPlayer playback
-- Play/pause, previous, next, seek bar, shuffle and repeat controls
-- Mini player above bottom navigation
-- No login flow and no payment flow
-- Android INTERNET permission only
+## Text-visibility correction
+All main titles and station/current-song names are explicitly rendered with a high-contrast near-white color. Secondary information uses a lighter grey so titles remain legible on the dark NEXA design.
 
-## Demo audio
-The first source build uses royalty-free public demo MP3 streams for playback validation. It does **not** scrape or bypass Spotify, YouTube Music, JioSaavn, Apple Music, or other protected catalogs.
+## Build
+GitHub: Actions → **NEXA Android Debug Build** → **Run workflow**.
+Artifact: `NEXA-V0.2-LIVE1-debug-apk`.
 
-## Build requirements
-- Android Studio compatible with AGP 9.4.0
-- JDK 17+
-- Android SDK API 36
-- Gradle 9.6
-
-Open the project folder in Android Studio and run the `app` configuration.
-
-## Next checkpoint
-V0.2 should replace the static demo catalog with legal live discovery providers (Radio Browser first, then approved free-track providers), add MediaSession background playback, lock-screen controls, resilient stream fallback and richer local library persistence.
-
-## Build APK on GitHub
-A workflow is included at `.github/workflows/android-debug-build.yml`.
-Push this project to GitHub, open **Actions → NEXA Android Debug Build → Run workflow**, then download the `NEXA-V0.1-debug-apk` artifact.
-
-## V0.1 RUNTIMEFIX1 — GitHub Actions
-If an older workflow failed with `Warning: Failed to find package 'tools'`, use the included `.github/workflows/android-debug-build.yml` from this package. It uses `android-actions/setup-android@v4` and does not request the removed Android SDK `tools` package.
-
-## V0.1 RUNTIMEFIX2 — stable API 36 build baseline
-The GitHub runner reported that `platforms;android-37` was unavailable from its stable SDK repository. RUNTIMEFIX2 uses the stable Android 16 / API 36 toolchain end-to-end: compileSdk/targetSdk 36, Build Tools 36.0.0, Compose BOM 2026.03.00 and Media3 1.9.3. The NEXA application UI/source is preserved.
+The app uses the community Radio Browser directory. Individual broadcaster stream availability, metadata and licensing are controlled by the broadcaster. NEXA does not bypass paid music services.

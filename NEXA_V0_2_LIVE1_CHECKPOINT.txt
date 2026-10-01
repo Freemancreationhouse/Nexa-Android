@@ -1,0 +1,25 @@
+NEXA — Music Beyond Borders
+V0.2 LIVE1 checkpoint
+
+LOCKED visual baseline preserved: futuristic Gen-Z dark/glass/neon NEXA direction.
+
+This build removes the V0.1 hardcoded SoundHelix/demo catalog and introduces live catalog behavior:
+- Radio Browser live station directory (India + global)
+- live Home data
+- live Explore search
+- language and genre live filters
+- live Radio list
+- real internet stream playback through Media3
+- HLS playback support
+- broadcaster metadata displayed as current title when available
+- station favorites persisted locally
+- recent stations persisted locally
+- broadcaster click count registration
+- loading/error/retry states
+- working sleep timer (15/30/60/off cycle)
+- share action
+- Android EQ panel launch when device provides one
+- clear high-contrast title text throughout the UI
+- no listener login or payment flow
+
+Build baseline remains API 36 / AGP 9.4.0 / Gradle 9.6 / JDK 17.
