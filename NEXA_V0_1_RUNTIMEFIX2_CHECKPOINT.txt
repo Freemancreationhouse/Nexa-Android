@@ -1,0 +1,28 @@
+NEXA V0.1 RUNTIMEFIX2 CHECKPOINT
+================================
+Locked product baseline preserved:
+- Brand: NEXA — Music Beyond Borders
+- Futuristic Gen-Z dark/neon UI preserved
+- Home / Explore / Radio / Library preserved
+- Now Playing / local favorites / playback source preserved
+
+Failure addressed:
+- GitHub Actions could not find platforms;android-37 on the runner's stable SDK repository.
+
+Build-only compatibility changes:
+- compileSdk: 37 -> 36
+- targetSdk: 37 -> 36
+- Android SDK package: platforms;android-36
+- Build Tools: 36.0.0
+- Compose BOM: 2026.08.00 -> 2026.03.00
+  Reason: Compose 1.12 / BOM 2026.08 requires compileSdk 37.
+- Media3: 1.11.1 -> 1.9.3
+  Reason: align playback library to the API-36-era stable baseline.
+- Android Gradle Plugin: 9.4.1 -> documented stable 9.4.0
+- Gradle: remains 9.6.0
+- JDK: remains 17
+- setup-android: remains v4
+- Separate sdkmanager --install step removed.
+- Required SDK packages are installed directly by setup-android@v4.
+
+No application UI/behavior source changes were made for this runtime fix.

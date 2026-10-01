@@ -23,19 +23,12 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      # setup-android@v3 could request Google's removed "tools" SDK package.
-      # v4 uses modern command-line tools and we explicitly request only platform-tools.
-      - name: Set up Android SDK
+      # Stable API-36 baseline. Keeping all required packages in this action
+      # avoids a separate sdkmanager install step and the unavailable API-37 package.
+      - name: Set up Android SDK 36
         uses: android-actions/setup-android@v4
         with:
-          packages: 'platform-tools'
-
-      - name: Install required Android SDK packages
-        shell: bash
-        run: |
-          sdkmanager --install \
-            "platforms;android-37" \
-            "build-tools;36.0.0"
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
 
       - name: Set up Gradle cache
         uses: gradle/actions/setup-gradle@v4
@@ -44,10 +37,13 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Verify build environment
+        shell: bash
         run: |
           java -version
           ./gradlew --version
-          sdkmanager --version
+          test -f "$ANDROID_SDK_ROOT/platforms/android-36/android.jar"
+          test -x "$ANDROID_SDK_ROOT/build-tools/36.0.0/aapt2"
+          echo "Android API 36 and Build Tools 36.0.0 are installed."
 
       - name: Build debug APK
         run: ./gradlew --no-daemon :app:assembleDebug --stacktrace
@@ -58,7 +54,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: NEXA-V0.1-RUNTIMEFIX1-debug-apk
+          name: NEXA-V0.1-RUNTIMEFIX2-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14

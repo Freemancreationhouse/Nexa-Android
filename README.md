@@ -22,9 +22,9 @@ Locked first-build baseline for the Studio Kinematics Gen-Z multilingual music a
 The first source build uses royalty-free public demo MP3 streams for playback validation. It does **not** scrape or bypass Spotify, YouTube Music, JioSaavn, Apple Music, or other protected catalogs.
 
 ## Build requirements
-- Android Studio compatible with AGP 9.4.x
+- Android Studio compatible with AGP 9.4.0
 - JDK 17+
-- Android SDK API 37
+- Android SDK API 36
 - Gradle 9.6
 
 Open the project folder in Android Studio and run the `app` configuration.
@@ -38,3 +38,6 @@ Push this project to GitHub, open **Actions → NEXA Android Debug Build → Run
 
 ## V0.1 RUNTIMEFIX1 — GitHub Actions
 If an older workflow failed with `Warning: Failed to find package 'tools'`, use the included `.github/workflows/android-debug-build.yml` from this package. It uses `android-actions/setup-android@v4` and does not request the removed Android SDK `tools` package.
+
+## V0.1 RUNTIMEFIX2 — stable API 36 build baseline
+The GitHub runner reported that `platforms;android-37` was unavailable from its stable SDK repository. RUNTIMEFIX2 uses the stable Android 16 / API 36 toolchain end-to-end: compileSdk/targetSdk 36, Build Tools 36.0.0, Compose BOM 2026.03.00 and Media3 1.9.3. The NEXA application UI/source is preserved.

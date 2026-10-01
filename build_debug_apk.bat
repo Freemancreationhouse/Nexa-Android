@@ -4,7 +4,7 @@ cd /d "%~dp0"
 echo ============================================================
 echo NEXA Android V0.1 - Debug APK Build
 echo ============================================================
-echo Requires Android Studio / Android SDK API 37 and JDK 17+.
+echo Requires Android Studio / Android SDK API 36 and JDK 17+.
 call gradlew.bat :app:assembleDebug
 if errorlevel 1 (
   echo.
