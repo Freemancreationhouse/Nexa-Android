@@ -1,0 +1,21 @@
+NEXA — Music Beyond Borders
+V0.2 LIVE2 BUILD-LOCK CHECKPOINT
+
+Preserved:
+- Approved NEXA futuristic Gen-Z dark/neon UI direction.
+- API 36 / target 36 baseline.
+- Real Radio Browser live station directory and Media3 playback.
+- Home / Explore / Radio / Library / Now Playing.
+- High-contrast near-white song/station titles across the app.
+- Local favorites and recent history.
+
+Deterministic build corrections from LIVE1:
+1. Removed Material3 API mismatch: the parameterized SuggestionChipDefaults.suggestionChipColors API used by LIVE1 belongs to newer Material3. LIVE2 uses stable Surface/Row primitives instead.
+2. Compose compiler plugin pinned to 2.2.10 to match AGP 9.4 built-in Kotlin baseline.
+3. GitHub Actions no longer invokes the custom gradlew downloader. Official gradle/actions/setup-gradle installs Gradle 9.6.0 and the workflow invokes `gradle` directly.
+4. SDK baseline remains platforms;android-36 + build-tools;36.0.0.
+5. GitHub workflow verifies the toolchain and APK file before publishing the artifact.
+6. Failure logs are uploaded as a separate artifact if compilation ever fails.
+
+Expected artifact:
+NEXA-V0.2-LIVE2-debug-apk

@@ -23,38 +23,57 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      # Stable API-36 baseline. Keeping all required packages in this action
-      # avoids a separate sdkmanager install step and the unavailable API-37 package.
       - name: Set up Android SDK 36
         uses: android-actions/setup-android@v4
         with:
           packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
 
-      - name: Set up Gradle cache
+      - name: Set up Gradle 9.6.0
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.6.0'
 
-      - name: Make Gradle wrapper executable
-        run: chmod +x ./gradlew
-
-      - name: Verify build environment
+      - name: Verify toolchain
         shell: bash
         run: |
+          set -euo pipefail
           java -version
-          ./gradlew --version
+          gradle --version
           test -f "$ANDROID_SDK_ROOT/platforms/android-36/android.jar"
           test -x "$ANDROID_SDK_ROOT/build-tools/36.0.0/aapt2"
-          echo "Android API 36 and Build Tools 36.0.0 are installed."
+          grep -q 'compileSdk = 36' app/build.gradle.kts
+          grep -q 'targetSdk = 36' app/build.gradle.kts
+          grep -q 'org.jetbrains.kotlin.plugin.compose") version "2.2.10"' build.gradle.kts
+          echo "NEXA LIVE2 toolchain preflight PASS"
 
       - name: Build debug APK
-        run: ./gradlew --no-daemon :app:assembleDebug --stacktrace
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle --no-daemon -PYOUTUBE_API_KEY="${{ secrets.NEXA_YOUTUBE_API_KEY }}" :app:assembleDebug --stacktrace --warning-mode all 2>&1 | tee build-live3.log
 
-      - name: Verify APK exists
-        run: test -f app/build/outputs/apk/debug/app-debug.apk
+      - name: Verify APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          ls -lh "$APK"
+          echo "NEXA V0.3 MUSIC SEARCH APK BUILD PASS"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: NEXA-V0.2-LIVE1-debug-apk
+          name: NEXA-V0.3-MUSICSEARCH-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: NEXA-V0.3-MUSICSEARCH-build-log
+          path: build-live3.log
+          if-no-files-found: ignore
           retention-days: 14
