@@ -2,9 +2,11 @@ package com.studiokinematics.nexa
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.audiofx.AudioEffect
 import android.net.Uri
 import android.os.Bundle
+import android.os.Build
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -53,6 +55,7 @@ import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -270,7 +273,7 @@ private class YouTubeRepository(private val context: Context) {
     suspend fun search(query: String, mode: SearchMode): List<Track> = withContext(Dispatchers.IO) {
         val prefs = context.getSharedPreferences("nexa", Context.MODE_PRIVATE)
         val key = (prefs.getString("youtube_api_key", "")?.trim().orEmpty()).ifBlank { BuildConfig.YOUTUBE_API_KEY.trim() }
-        if (key.isBlank()) return@withContext emptyList()
+        if (key.isBlank()) throw IllegalStateException("YouTube search is not configured. Open Settings and add a YouTube Data API key.")
         val q = when (mode) {
             SearchMode.SONGS -> "$query song"
             SearchMode.ARTISTS -> "$query official songs"
@@ -278,17 +281,47 @@ private class YouTubeRepository(private val context: Context) {
             SearchMode.MOVIES -> "$query movie soundtrack songs"
             SearchMode.ALL -> query
         }
-        val url = "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&maxResults=25&q=${enc(q)}&regionCode=IN&relevanceLanguage=en&key=${enc(key)}"
-        runCatching { parse(fetch(url)) }.getOrDefault(emptyList())
+        val url = "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&maxResults=25&q=${enc(q)}&regionCode=IN&relevanceLanguage=en"
+        parse(fetch(url, key))
     }
-    private fun fetch(url: String): String {
+
+    private fun fetch(url: String, key: String): String {
         val conn = (URI(url).toURL().openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"; connectTimeout = 10_000; readTimeout = 15_000
-            setRequestProperty("User-Agent", "NEXA/0.3 Android (Studio Kinematics)")
+            setRequestProperty("User-Agent", "NEXA/0.3.2 Android (Studio Kinematics)")
             setRequestProperty("Accept", "application/json")
+            setRequestProperty("x-goog-api-key", key)
+            setRequestProperty("X-Android-Package", context.packageName)
+            signingCertificateSha1()?.let { setRequestProperty("X-Android-Cert", it) }
         }
-        return try { if (conn.responseCode !in 200..299) throw IllegalStateException("HTTP ${conn.responseCode}"); conn.inputStream.bufferedReader().use { it.readText() } } finally { conn.disconnect() }
+        return try {
+            val code = conn.responseCode
+            if (code !in 200..299) {
+                val body = conn.errorStream?.bufferedReader()?.use { it.readText() }.orEmpty()
+                val apiMessage = runCatching {
+                    JSONObject(body).optJSONObject("error")?.optString("message").orEmpty()
+                }.getOrDefault("")
+                throw IllegalStateException(if (apiMessage.isBlank()) "YouTube search failed (HTTP $code)." else "YouTube: $apiMessage")
+            }
+            conn.inputStream.bufferedReader().use { it.readText() }
+        } finally { conn.disconnect() }
     }
+
+    @Suppress("DEPRECATION")
+    private fun signingCertificateSha1(): String? = runCatching {
+        val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+        } else {
+            context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES)
+        }
+        val signature = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            packageInfo.signingInfo?.apkContentsSigners?.firstOrNull()
+        } else {
+            packageInfo.signatures?.firstOrNull()
+        } ?: return@runCatching null
+        MessageDigest.getInstance("SHA-1").digest(signature.toByteArray()).joinToString("") { "%02X".format(it.toInt() and 0xFF) }
+    }.getOrNull()
+
     private fun parse(json: String): List<Track> {
         val arr = JSONObject(json).optJSONArray("items") ?: return emptyList(); val out = ArrayList<Track>()
         for (i in 0 until arr.length()) {
@@ -299,7 +332,7 @@ private class YouTubeRepository(private val context: Context) {
         }
         return out
     }
-    private fun clean(value: String) = value.replace("&amp;", "&").replace(Regex("\\s+"), " ").trim()
+    private fun clean(value: String) = value.replace("&amp;", "&").replace("&quot;", "\"").replace("&#39;", "'").replace(Regex("\\s+"), " ").trim()
     private fun enc(value: String) = URLEncoder.encode(value, StandardCharsets.UTF_8.toString())
 }
 
@@ -427,22 +460,50 @@ private fun ExploreScreen(radio: RadioBrowserRepository, audius: AudiusRepositor
     var results by remember { mutableStateOf<List<Track>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var providerNotes by remember { mutableStateOf<List<String>>(emptyList()) }
     val scope = rememberCoroutineScope()
     val languages = listOf("Hindi", "English", "Punjabi", "Tamil", "Telugu", "Malayalam", "Bengali", "Marathi", "Gujarati", "Kannada")
 
     fun searchNow(value: String = query) {
         val q = value.trim(); if (q.isBlank()) return
-        loading = true; error = null
-        // Search all sources concurrently. YouTube is used for mainstream audiovisual catalog;
-        // Audius supplies native audio where its catalog permits it; Radio Browser supplies live stations.
+        loading = true; error = null; providerNotes = emptyList()
+        // A provider failure must never cancel the whole search coroutine or close the app.
         scope.launch {
-            val yt = async { youtube.search(q, mode) }
-            val au = async { audius.search(q) }
-            val rb = async { radio.search(q) }
-            val combined = (yt.await() + au.await() + rb.await()).distinctBy { it.id }
-            results = combined
-            if (combined.isEmpty()) error = "No results. Try the song title, artist, movie or a shorter search."
-            loading = false
+            try {
+                val providerResults = supervisorScope {
+                    val yt = async { runCatching { youtube.search(q, mode) } }
+                    val au = async { runCatching { audius.search(q) } }
+                    val rb = async { runCatching { radio.search(q) } }
+                    Triple(yt.await(), au.await(), rb.await())
+                }
+                val ytResult = providerResults.first
+                val auResult = providerResults.second
+                val rbResult = providerResults.third
+                val combined = (
+                    ytResult.getOrDefault(emptyList()) +
+                    auResult.getOrDefault(emptyList()) +
+                    rbResult.getOrDefault(emptyList())
+                ).distinctBy { it.id }
+                results = combined
+
+                providerNotes = buildList {
+                    ytResult.exceptionOrNull()?.message?.takeIf { it.isNotBlank() }?.let { add(it) }
+                    auResult.exceptionOrNull()?.message?.takeIf { it.isNotBlank() }?.let { add("Audius: $it") }
+                    rbResult.exceptionOrNull()?.message?.takeIf { it.isNotBlank() }?.let { add("Radio: $it") }
+                }.distinct()
+
+                error = when {
+                    combined.isNotEmpty() -> null
+                    providerNotes.any { it.startsWith("YouTube search is not configured") } ->
+                        "Mainstream song search needs the YouTube Data API key. Tap the settings icon, add the key once, then search again. Radio and open-catalog sources remain independent."
+                    providerNotes.isNotEmpty() -> "No provider returned a result. ${providerNotes.joinToString(" • ")}"
+                    else -> "No results. Try the song title, artist, movie or a shorter search."
+                }
+            } catch (t: Throwable) {
+                // Final UI boundary: unexpected search errors are shown instead of escaping the Main coroutine.
+                results = emptyList()
+                error = "Search could not finish: ${t.message ?: "unknown error"}. Please retry."
+            } finally { loading = false }
         }
     }
 
@@ -477,6 +538,17 @@ private fun ExploreScreen(radio: RadioBrowserRepository, audius: AudiusRepositor
         }
         if (loading) item { LoadingBlock("Searching music sources…") }
         error?.let { msg -> item { ErrorBlock(msg, null) } }
+        if (providerNotes.any { it.startsWith("YouTube search is not configured") }) {
+            item {
+                Button(
+                    onClick = onSettings,
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 6.dp).fillMaxWidth()
+                ) { Icon(Icons.Default.Settings, null); Spacer(Modifier.width(8.dp)); Text("Configure mainstream music search") }
+            }
+        }
+        if (providerNotes.isNotEmpty() && results.isNotEmpty()) {
+            item { ProviderStatusBlock(providerNotes) }
+        }
         items(results, key = { it.id }) { track -> SearchResultRow(track, track.id in favorites, { onPlay(track) }, { onFav(track) }) }
         if (results.isNotEmpty()) item { Text("YouTube results play in the official embedded YouTube player. Audius results use native NEXA playback.", color = Muted, fontSize = 11.sp, modifier = Modifier.padding(18.dp)) }
     }
@@ -720,6 +792,17 @@ private fun LoadingBlock(text: String) {
         CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp, color = Cyan)
         Spacer(Modifier.width(12.dp))
         Text(text, color = Soft)
+    }
+}
+
+@Composable
+private fun ProviderStatusBlock(notes: List<String>) {
+    Column(
+        Modifier.padding(horizontal = 18.dp, vertical = 6.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp))
+            .background(Color(0xFF122033)).padding(12.dp)
+    ) {
+        Text("Some sources are unavailable", color = Cyan, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+        notes.take(3).forEach { note -> Text("• $note", color = Soft, fontSize = 11.sp, modifier = Modifier.padding(top = 3.dp)) }
     }
 }
 

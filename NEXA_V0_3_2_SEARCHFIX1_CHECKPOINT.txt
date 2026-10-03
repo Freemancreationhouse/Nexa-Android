@@ -1,0 +1,21 @@
+NEXA V0.3.2 SEARCHFIX1
+=======================
+Baseline: user-provided installed V0.3.1 source.
+
+Root causes fixed:
+1. Explore search launched three async providers in one Main-scope coroutine. RadioBrowserRepository.search() can throw when all radio servers fail. Awaiting that deferred propagated the exception out of the Compose coroutine and terminated the Android process.
+2. YouTubeRepository returned an empty list when no YouTube Data API key was configured, making mainstream searches look like valid "0 results".
+3. YouTube REST calls placed the API key in the URL and did not send X-Android-Package / X-Android-Cert, so an Android-restricted Google API key could be rejected.
+
+Fixes:
+- supervisorScope + runCatching isolates YouTube/Audius/Radio failures.
+- try/finally always clears the loading state.
+- missing/invalid provider configuration is shown in the UI instead of becoming 0 silent matches.
+- Settings button is shown when mainstream YouTube search is unconfigured.
+- YouTube API key is sent using x-goog-api-key.
+- Android package and signing SHA-1 are sent with X-Android-Package and X-Android-Cert.
+- YouTube HTTP error message is surfaced for diagnosis.
+- Existing NEXA design, Radio, favorites/history, and official YouTube embedded playback are preserved.
+
+Important:
+Mainstream YouTube Data API search still requires a developer API key. This is a developer credential, not a listener login. The app can receive it from GitHub secret NEXA_YOUTUBE_API_KEY at build time or from NEXA Settings after install.
