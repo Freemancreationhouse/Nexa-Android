@@ -44,7 +44,11 @@ jobs:
           grep -q 'compileSdk = 36' app/build.gradle.kts
           grep -q 'targetSdk = 36' app/build.gradle.kts
           grep -q 'org.jetbrains.kotlin.plugin.compose") version "2.2.10"' build.gradle.kts
-          echo "NEXA LIVE2 toolchain preflight PASS"
+          echo "NEXA V0.3.1 toolchain preflight PASS"
+
+      - name: Source regression preflight
+        shell: bash
+        run: python3 tools/preflight_source.py
 
       - name: Build debug APK
         shell: bash
@@ -59,12 +63,12 @@ jobs:
           APK=app/build/outputs/apk/debug/app-debug.apk
           test -s "$APK"
           ls -lh "$APK"
-          echo "NEXA V0.3 MUSIC SEARCH APK BUILD PASS"
+          echo "NEXA V0.3.1 COMPILEFIX1 APK BUILD PASS"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: NEXA-V0.3-MUSICSEARCH-debug-apk
+          name: NEXA-V0.3.1-COMPILEFIX1-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
@@ -73,7 +77,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: NEXA-V0.3-MUSICSEARCH-build-log
+          name: NEXA-V0.3.1-COMPILEFIX1-build-log
           path: build-live3.log
           if-no-files-found: ignore
           retention-days: 14

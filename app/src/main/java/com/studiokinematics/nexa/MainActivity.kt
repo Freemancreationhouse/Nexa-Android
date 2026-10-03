@@ -672,3 +672,198 @@ private fun SettingsDialog(prefs: android.content.SharedPreferences, onClose: ()
 private fun openUrl(context: Context, url: String) {
     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
 }
+
+@Composable
+private fun SectionTitle(title: String, subtitle: String) {
+    Row(
+        Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 24.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.Bottom
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Bright)
+            Text(subtitle, color = Muted, fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+private fun StatCard(value: String, label: String, icon: ImageVector, modifier: Modifier = Modifier) {
+    Row(modifier.clip(RoundedCornerShape(22.dp)).background(Panel).padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(44.dp).clip(CircleShape).background(Purple.copy(.2f)), contentAlignment = Alignment.Center) {
+            Icon(icon, null, tint = Pink)
+        }
+        Spacer(Modifier.width(12.dp))
+        Column {
+            Text(value, fontSize = 22.sp, fontWeight = FontWeight.Black, color = Bright)
+            Text(label, color = Muted, fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+private fun EmptyState(title: String, body: String) {
+    Column(Modifier.fillMaxWidth().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(Icons.Default.AutoAwesome, null, tint = Purple, modifier = Modifier.size(36.dp))
+        Spacer(Modifier.height(8.dp))
+        Text(title, fontWeight = FontWeight.Bold, color = Bright)
+        Text(body, color = Muted, fontSize = 12.sp)
+    }
+}
+
+@Composable
+private fun LoadingBlock(text: String) {
+    Row(
+        Modifier.fillMaxWidth().padding(24.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp, color = Cyan)
+        Spacer(Modifier.width(12.dp))
+        Text(text, color = Soft)
+    }
+}
+
+@Composable
+private fun ErrorBlock(text: String, onRetry: (() -> Unit)?) {
+    Row(
+        Modifier.padding(horizontal = 18.dp, vertical = 10.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp))
+            .background(Color(0xFF2A1420)).padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Default.WifiOff, null, tint = Danger)
+        Spacer(Modifier.width(10.dp))
+        Text(text, modifier = Modifier.weight(1f), color = Soft, fontSize = 13.sp)
+        if (onRetry != null) TextButton(onClick = onRetry) { Text("Retry", color = Cyan) }
+    }
+}
+
+@Composable
+private fun SourceFooter() {
+    Text(
+        "Music search: YouTube + Audius • Live directory: Radio Browser.",
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp),
+        color = Muted,
+        fontSize = 10.sp
+    )
+}
+
+@Composable
+private fun BottomBar(selected: Tab, onSelect: (Tab) -> Unit) {
+    NavigationBar(containerColor = Color(0xFF090E18), tonalElevation = 0.dp) {
+        Tab.entries.forEach { tab ->
+            NavigationBarItem(
+                selected = selected == tab,
+                onClick = { onSelect(tab) },
+                icon = { Icon(tab.icon, null) },
+                label = { Text(tab.label) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = Pink,
+                    selectedTextColor = Pink,
+                    indicatorColor = Purple.copy(.18f),
+                    unselectedIconColor = Muted,
+                    unselectedTextColor = Muted
+                )
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlayerAction(icon: ImageVector, label: String, onClick: () -> Unit) {
+    Column(
+        Modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(icon, null, tint = Soft)
+        Spacer(Modifier.height(5.dp))
+        Text(label, color = Soft, fontSize = 11.sp)
+    }
+}
+
+private fun sourceLabel(track: Track): String = when (track.source) {
+    Source.YOUTUBE -> "YouTube • video"
+    Source.AUDIUS -> "Audius • direct audio"
+    Source.RADIO -> "Radio • live"
+}
+
+private fun formatTime(ms: Long): String {
+    val total = (ms / 1000).coerceAtLeast(0)
+    return "%d:%02d".format(total / 60, total % 60)
+}
+
+private fun share(context: Context, text: String, chooserTitle: String) {
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, text)
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    context.startActivity(Intent.createChooser(intent, chooserTitle).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+}
+
+private fun saveTracks(tracks: List<Track>): String {
+    val arr = JSONArray()
+    tracks.forEach { t ->
+        arr.put(JSONObject().apply {
+            put("id", t.id)
+            put("title", t.title)
+            put("artist", t.artist)
+            put("language", t.language)
+            put("genre", t.genre)
+            put("streamUrl", t.streamUrl)
+            put("source", t.source.name)
+            put("videoId", t.videoId)
+            put("thumbnailUrl", t.thumbnailUrl)
+            put("countryCode", t.countryCode)
+            put("homepage", t.homepage)
+            put("codec", t.codec)
+            put("bitrate", t.bitrate)
+            put("durationMs", t.durationMs)
+        })
+    }
+    return arr.toString()
+}
+
+private fun loadTracks(json: String?): List<Track> {
+    if (json.isNullOrBlank()) return emptyList()
+    return runCatching {
+        val arr = JSONArray(json)
+        buildList {
+            for (i in 0 until arr.length()) {
+                val o = arr.optJSONObject(i) ?: continue
+                val id = o.optString("id").trim()
+                val title = o.optString("title").trim()
+                if (id.isBlank() || title.isBlank()) continue
+
+                val source = runCatching { Source.valueOf(o.optString("source", Source.RADIO.name)) }
+                    .getOrDefault(Source.RADIO)
+                val streamUrl = o.optString("streamUrl").trim()
+                val videoId = o.optString("videoId").trim()
+                val playable = when (source) {
+                    Source.YOUTUBE -> videoId.isNotBlank()
+                    Source.AUDIUS, Source.RADIO -> streamUrl.isNotBlank()
+                }
+                if (!playable) continue
+
+                add(
+                    Track(
+                        id = id,
+                        title = title,
+                        artist = o.optString("artist", if (source == Source.RADIO) "Live radio" else "Artist"),
+                        language = o.optString("language", "Music"),
+                        genre = o.optString("genre", "Music"),
+                        streamUrl = streamUrl,
+                        source = source,
+                        videoId = videoId,
+                        thumbnailUrl = o.optString("thumbnailUrl"),
+                        countryCode = o.optString("countryCode"),
+                        homepage = o.optString("homepage"),
+                        codec = o.optString("codec"),
+                        bitrate = o.optInt("bitrate", 0),
+                        durationMs = o.optLong("durationMs", 0L)
+                    )
+                )
+            }
+        }
+    }.getOrDefault(emptyList())
+}
