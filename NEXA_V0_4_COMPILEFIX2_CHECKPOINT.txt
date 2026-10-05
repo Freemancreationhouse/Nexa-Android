@@ -1,0 +1,21 @@
+NEXA — Music Beyond Borders
+V0.4 COMPILEFIX2
+Owner / Publisher: Studio Kinematic
+Base: NEXA V0.4 COMPILEFIX1
+
+GitHub lint failure fixed:
+- CI reached :app:lintDebug, proving the previous Kotlin compile syntax failure was cleared.
+- Android Lint then reported UnsafeOptInUsageError for Media3 UnstableApi calls.
+- Root cause: three Kotlin files used @OptIn(UnstableApi::class) without importing androidx.annotation.OptIn, so Kotlin resolved the annotation to kotlin.OptIn.
+- Android Media3 lint explicitly requires androidx.annotation.OptIn for UnstableApi.
+
+Corrected files:
+- offline/DownloadRepository.kt
+- playback/MediaItemMapper.kt
+- playback/NexaPlaybackService.kt
+
+Regression protection:
+- tools/test_v04_lint_optin_fix.py
+- CI now executes compilefix1, final-review, and lint-opt-in gates before Gradle lint/build.
+
+No lint baseline and no project-wide lint suppression were added. The actual Media3 usage sites are opted in correctly.

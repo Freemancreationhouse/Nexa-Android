@@ -57,6 +57,9 @@ jobs:
           python3 tools/test_v04_ui_contract.py
           python3 tools/test_v04_offline_contract.py
           python3 tools/test_v04_billing_lyrics_contract.py
+          python3 tools/test_v04_final_review_regression.py
+          python3 tools/test_v04_compilefix1.py
+          python3 tools/test_v04_lint_optin_fix.py
 
       - name: Test lint and build debug APK
         shell: bash

@@ -93,3 +93,7 @@ architecture intentionally leaves room for that hardening.
 The breadth of searchable commercial music is determined by the catalogs
 and permissions of the connected providers; NEXA cannot guarantee every
 commercial recording in existence.
+
+## V0.4 COMPILEFIX2
+
+GitHub Android Lint may flag Media3 APIs with `UnsafeOptInUsageError`. The Media3 integration files now explicitly import `androidx.annotation.OptIn` before using `@OptIn(UnstableApi::class)`. This fixes the lint boundary at the usage sites rather than disabling lint or creating a lint baseline.
