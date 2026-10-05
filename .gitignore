@@ -10,3 +10,5 @@
 app/build
 
 .gradle-dist
+.worktrees/
+.superpowers/

@@ -1,4 +1,4 @@
-name: NEXA Android Debug Build
+name: NEXA Android V0.4 Build
 
 on:
   workflow_dispatch:
@@ -11,8 +11,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-
+    timeout-minutes: 35
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,20 +42,31 @@ jobs:
           test -x "$ANDROID_SDK_ROOT/build-tools/36.0.0/aapt2"
           grep -q 'compileSdk = 36' app/build.gradle.kts
           grep -q 'targetSdk = 36' app/build.gradle.kts
-          grep -q 'org.jetbrains.kotlin.plugin.compose") version "2.2.10"' build.gradle.kts
-          echo "NEXA V0.3.2 toolchain preflight PASS"
+          grep -q 'versionName = "0.4.0"' app/build.gradle.kts
+          echo "NEXA V0.4 toolchain preflight PASS"
 
-      - name: Source regression preflight
+      - name: Source and architecture regression gates
         shell: bash
         run: |
+          set -euo pipefail
           python3 tools/preflight_source.py
+          python3 tools/preflight_v04_release.py
+          python3 tools/test_v04_core_contract.py
           python3 tools/test_runtime_search_regression.py
+          python3 tools/test_v04_architecture_contract.py
+          python3 tools/test_v04_ui_contract.py
+          python3 tools/test_v04_offline_contract.py
+          python3 tools/test_v04_billing_lyrics_contract.py
 
-      - name: Build debug APK
+      - name: Test lint and build debug APK
         shell: bash
         run: |
           set -o pipefail
-          gradle --no-daemon -PYOUTUBE_API_KEY="${{ secrets.NEXA_YOUTUBE_API_KEY }}" :app:assembleDebug --stacktrace --warning-mode all 2>&1 | tee build-live3.log
+          gradle --no-daemon \
+            -PYOUTUBE_API_KEY="${{ secrets.NEXA_YOUTUBE_API_KEY }}" \
+            -PNEXA_PLUS_PRODUCT_ID="${{ vars.NEXA_PLUS_PRODUCT_ID }}" \
+            :app:testDebugUnitTest :app:lintDebug :app:assembleDebug \
+            --stacktrace --warning-mode all 2>&1 | tee build-v04.log
 
       - name: Verify APK and signing identity
         shell: bash
@@ -65,15 +75,15 @@ jobs:
           APK=app/build/outputs/apk/debug/app-debug.apk
           test -s "$APK"
           ls -lh "$APK"
-          APKSIGNER="$ANDROID_SDK_ROOT/build-tools/36.0.0/apksigner"
-          "$APKSIGNER" verify --print-certs "$APK" | tee signing-info.txt
+          "$ANDROID_SDK_ROOT/build-tools/36.0.0/apksigner" verify --print-certs "$APK" | tee signing-info.txt
           echo "Package: com.studiokinematics.nexa" >> signing-info.txt
-          echo "NEXA V0.3.2 SEARCHFIX1 APK BUILD PASS"
+          echo "Owner: Studio Kinematic" >> signing-info.txt
+          echo "NEXA V0.4 APK BUILD PASS"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: NEXA-V0.3.2-SEARCHFIX1-debug-apk
+          name: NEXA-V0.4-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
@@ -81,16 +91,18 @@ jobs:
       - name: Upload signing identity
         uses: actions/upload-artifact@v4
         with:
-          name: NEXA-V0.3.2-signing-info
+          name: NEXA-V0.4-signing-info
           path: signing-info.txt
           if-no-files-found: error
           retention-days: 14
 
-      - name: Upload build log on failure
+      - name: Upload diagnostics on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: NEXA-V0.3.2-SEARCHFIX1-build-log
-          path: build-live3.log
+          name: NEXA-V0.4-build-diagnostics
+          path: |
+            build-v04.log
+            app/build/reports/**
           if-no-files-found: ignore
           retention-days: 14

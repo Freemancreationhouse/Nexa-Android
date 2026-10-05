@@ -1,0 +1,15 @@
+NEXA — Music Beyond Borders Version: 0.4.0 Owner / Publisher: Studio
+Kinematic Baseline: V0.3.2 SEARCHFIX1
+
+LOCKED V0.4: - Native multilingual music search by song, artist,
+album/movie, language and general query across available permitted
+providers. - Neo-Glass artwork-first UI with bright titles and NEXA
+artwork fallback. - Media3 service-owned background/screen-off native
+playback. - Notification, lock-screen and Bluetooth/headset media
+controls. - Persistent mini-player and queue. - Library → On Device via
+Android MediaStore; local songs are unlimited and do not count toward
+NEXA offline slots. - Library → NEXA Offline for source-permitted direct
+audio only. - NEXA Free = 5 simultaneous eligible NEXA-managed offline
+songs. - NEXA+ Google Play Billing 9.1.0 foundation. - Lyrics states
+only; no scraping/fabrication. - YouTube = official visible embedded
+discovery/fallback, not extracted native audio.

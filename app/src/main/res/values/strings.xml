@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">NEXA</string>
+    <string name="download_channel_name">NEXA Offline</string>
+    <string name="download_channel_description">Music saved privately inside NEXA</string>
+    <string name="owner_name">Studio Kinematic</string>
+    <string name="product_tagline">NEXA — Music Beyond Borders</string>
 </resources>

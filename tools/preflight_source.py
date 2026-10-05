@@ -1,26 +1,27 @@
 from pathlib import Path
-import re, sys
-p=Path('app/src/main/java/com/studiokinematics/nexa/MainActivity.kt')
-s=p.read_text(encoding='utf-8')
-errors=[]
-required=['SectionTitle','StatCard','EmptyState','LoadingBlock','ErrorBlock','SourceFooter','BottomBar','PlayerAction','formatTime','saveTracks','loadTracks','sourceLabel','share']
-for name in required:
-    if not re.search(r'\bfun\s+'+re.escape(name)+r'\s*\(', s):
-        errors.append(f'missing helper definition: {name}')
-for field in ['source','videoId','thumbnailUrl','durationMs']:
-    if f'put("{field}"' not in s:
-        errors.append(f'missing persisted Track field: {field}')
-if 'Source.YOUTUBE -> videoId.isNotBlank()' not in s:
-    errors.append('YouTube saved-item restore still incorrectly depends on a native stream URL')
-if s.count('fun NexaApp(') != 1:
-    errors.append('NexaApp definition count is not exactly one')
-if s.count('private fun loadTracks(') != 1 or s.count('private fun saveTracks(') != 1:
-    errors.append('track persistence helper definition count is invalid')
+import sys, xml.etree.ElementTree as ET
+root=Path(".")
+src="\n".join(p.read_text(encoding="utf-8") for p in (root/"app/src/main/java").rglob("*.kt"))
+required=[
+"app/src/main/java/com/studiokinematics/nexa/MainActivity.kt",
+"app/src/main/java/com/studiokinematics/nexa/data/CatalogRepositories.kt",
+"app/src/main/java/com/studiokinematics/nexa/playback/NexaPlaybackService.kt",
+"app/src/main/java/com/studiokinematics/nexa/local/LocalMusicRepository.kt",
+"app/src/main/java/com/studiokinematics/nexa/offline/DownloadRepository.kt",
+"app/src/main/java/com/studiokinematics/nexa/billing/BillingRepository.kt",
+]
+errors=[f"missing {x}" for x in required if not (root/x).exists()]
+if src.count("ExoPlayer.Builder")!=1: errors.append("native ExoPlayer must be constructed exactly once")
+if "PlayerController" in src: errors.append("obsolete Activity-owned PlayerController remains")
+if "READ_MEDIA_AUDIO" not in (root/"app/src/main/AndroidManifest.xml").read_text(): errors.append("local audio permission missing")
+try: ET.parse(root/"app/src/main/AndroidManifest.xml")
+except Exception as e: errors.append(f"manifest XML invalid: {e}")
 if errors:
-    print('FAIL NEXA source preflight')
-    for e in errors: print(' -', e)
+    print("FAIL NEXA V0.4 source preflight")
+    for e in errors: print(" -",e)
     sys.exit(1)
-print('PASS NEXA source preflight')
-print(f' - MainActivity lines: {len(s.splitlines())}')
-print(f' - required helpers: {len(required)}/{len(required)}')
-print(' - V0.3 source-specific persistence fields present')
+print("PASS NEXA V0.4 source preflight")
+print(" - service-owned native player")
+print(" - MediaStore local music")
+print(" - eligible private offline library")
+print(" - NEXA+ billing foundation")
