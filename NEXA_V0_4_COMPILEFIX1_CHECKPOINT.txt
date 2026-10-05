@@ -1,0 +1,20 @@
+NEXA — Music Beyond Borders
+V0.4 COMPILEFIX1
+Owner / Publisher: Studio Kinematic
+Base: NEXA V0.4 FINAL
+
+GitHub compiler failure fixed:
+- NexaTheme.kt used an invalid compact composable function-type declaration:
+  content:@Composable()->Unit
+- Replaced with valid Kotlin/Compose syntax:
+  content: @Composable () -> Unit
+- MaterialTheme invocation expanded to a normal function body.
+- MainActivity setContent entrypoint is intentionally unchanged because its reported errors were secondary parser fallout from NexaTheme.kt.
+
+Regression protection:
+- tools/test_v04_compilefix1.py
+- Full V0.4 source/regression gate set retained.
+
+Android build note:
+- This environment does not include a usable Android Gradle/SDK toolchain.
+- GitHub Actions remains the authoritative compile/lint/APK gate.

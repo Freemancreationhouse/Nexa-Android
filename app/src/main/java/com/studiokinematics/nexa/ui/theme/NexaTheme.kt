@@ -22,4 +22,10 @@ private val colors=darkColorScheme(
     onBackground=NexaBright,onSurface=NexaBright,onPrimary=Color.White
 )
 
-@Composable fun NexaTheme(content:@Composable()->Unit)=MaterialTheme(colorScheme=colors,content=content)
+@Composable
+fun NexaTheme(content: @Composable () -> Unit) {
+    MaterialTheme(
+        colorScheme = colors,
+        content = content
+    )
+}
